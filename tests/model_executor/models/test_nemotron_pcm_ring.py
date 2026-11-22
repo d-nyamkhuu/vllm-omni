@@ -13,7 +13,7 @@ pytestmark = [pytest.mark.core_model, *hardware_marks(res={"cuda": "L4"}, num_ca
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Triton PCM assembly")
 def test_pcm_ring_matches_buffered_windows_bit_for_bit():
     ring = PCMWindowRing("cuda")
-    ref = {}
+    ref: dict[str, torch.Tensor] = {}
     gen = torch.Generator().manual_seed(291)
 
     def send(spec, selected=None):

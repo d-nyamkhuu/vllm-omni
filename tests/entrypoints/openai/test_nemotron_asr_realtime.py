@@ -102,29 +102,35 @@ def test_stage_batch_round_trip_uses_unpadded_pcm():
     assert asyncio.run(execute()) == [[3, 4], [], [9]]
 
 
-def test_span_batcher_bounds_acoustic_work_and_preserves_stream_order():
+@pytest.mark.asyncio
+async def test_span_batcher_bounds_acoustic_work_and_preserves_stream_order():
     from collections import defaultdict
 
-    from vllm_omni.entrypoints.openai.nemotron_window_batcher import NemotronWindowBatcher
+    from vllm_omni.entrypoints.openai.nemotron_window_batcher import AudioWindow, NemotronWindowBatcher
 
     batcher = NemotronWindowBatcher(None)
     for hop in range(18):
         for stream in range(48):
-            info = dict(
-                asr_stream=stream,
+            info = AudioWindow(
+                asr_lang=0,
+                asr_left=0,
+                asr_stream=str(stream),
                 asr_keep=min(hop * 8960, 89600),
                 asr_pcm=bytes(2 * (8960 if hop != 17 else 517)),
                 asr_final=hop == 17,
             )
-            batcher.pending.append((info, hop))
-    seen = defaultdict(list)
+            future = asyncio.get_running_loop().create_future()
+            future.set_result([hop])
+            batcher.pending.append((info, future))
+    seen: defaultdict[str, list[int]] = defaultdict(list)
     sizes = []
     while batcher.pending:
         items = batcher._take_span_batch()
         sizes.append(len(items))
         distinct = set()
         groups = work = 0
-        for info, hop in items:
+        for info, future in items:
+            (hop,) = future.result()
             s = info["asr_stream"]
             if s not in distinct or (info["asr_final"] and seen[s] and seen[s][-1] == hop - 1):
                 groups += 1
@@ -133,5 +139,5 @@ def test_span_batcher_bounds_acoustic_work_and_preserves_stream_order():
             distinct.add(s)
             seen[s].append(hop)
         assert len(items) <= 512 and groups <= 32 and work <= 4096 * 1280
-    assert max(sizes) > 32 and set(seen) == set(range(48))
+    assert max(sizes) > 32 and set(seen) == {str(i) for i in range(48)}
     assert all(order == list(range(18)) for order in seen.values())

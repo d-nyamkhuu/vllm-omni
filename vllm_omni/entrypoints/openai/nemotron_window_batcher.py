@@ -5,6 +5,19 @@
 import asyncio
 from collections import defaultdict, deque
 from itertools import islice
+from typing import TypedDict
+
+
+class AudioWindow(TypedDict):
+    asr_stream: str
+    asr_lang: int
+    asr_keep: int
+    asr_left: int
+    asr_pcm: bytes
+    asr_final: bool
+
+
+QueuedWindow = tuple[AudioWindow, asyncio.Future[list[int]]]
 
 
 class NemotronWindowBatcher:
@@ -13,11 +26,11 @@ class NemotronWindowBatcher:
         self.ready_hops = 24
         self.submit = submit
         self.limit = 128
-        self.pending = deque()
-        self.task = None
+        self.pending: deque[QueuedWindow] = deque()
+        self.task: asyncio.Task | None = None
 
-    async def window(self, info):
-        future = asyncio.get_running_loop().create_future()
+    async def window(self, info: AudioWindow) -> list[int]:
+        future: asyncio.Future[list[int]] = asyncio.get_running_loop().create_future()
         self.pending.append((info, future))
         if self.task is None:
             self.task = asyncio.create_task(self._drain())
@@ -28,15 +41,16 @@ class NemotronWindowBatcher:
             await asyncio.shield(future)
             raise
 
-    def _take_span_batch(self):
+    def _take_span_batch(self) -> list[QueuedWindow]:
         # Logical RNNT updates from a stream share the same acoustic span.
         # Limit both the actual encoder work and the per-call transport size.
-        queues = defaultdict(deque)
+        queues: defaultdict[str, deque[QueuedWindow]] = defaultdict(deque)
         for item in self.pending:
             queues[item[0]["asr_stream"]].append(item)
         self.pending.clear()
         active = deque(queues.values())
-        batch, frames, spans = [], 0, 0
+        batch: list[QueuedWindow] = []
+        frames = spans = 0
         logical_limit = 4 * self.limit
         while active and len(batch) < logical_limit:
             stream = active.popleft()
@@ -75,11 +89,14 @@ class NemotronWindowBatcher:
                 try:
                     audio = [row["asr_pcm"] for row in rows]
                     payload = {
-                        key: [r[key] for r in rows]
-                        for key in ("asr_stream", "asr_lang", "asr_left", "asr_final", "asr_keep")
+                        "asr_stream": [r["asr_stream"] for r in rows],
+                        "asr_lang": [r["asr_lang"] for r in rows],
+                        "asr_left": [r["asr_left"] for r in rows],
+                        "asr_final": [r["asr_final"] for r in rows],
+                        "asr_keep": [r["asr_keep"] for r in rows],
+                        "asr_batch_lengths": [len(blob) // 2 for blob in audio],
+                        "pcm": audio,
                     }
-                    payload["asr_batch_lengths"] = [len(blob) // 2 for blob in audio]
-                    payload["pcm"] = audio
                     data = await self.submit(payload)
                     parts = data["asr_parts"]
                     if len(parts) != len(batch):

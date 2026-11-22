@@ -60,7 +60,7 @@ class NemotronTranscription:
         tokens = []
         previous_text = ""
         active = False
-        outstanding = deque()
+        outstanding: deque[asyncio.Task[None]] = deque()
         await ws.send_json({"type": "session.created", "session": {"id": stream}})
 
         async def decode(nbytes, final):
