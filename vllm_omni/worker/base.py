@@ -197,6 +197,13 @@ class OmniGPUWorkerBase(GPUWorker):
             return set(engine.lora_manager.list_adapters())
         return super().list_loras()
 
+    def process_realtime_audio_batch(self, payload: dict) -> dict:
+        """Dispatch a model's stateful input batch on a dedicated ASR stage."""
+        if self.vllm_config.parallel_config.world_size != 1:
+            raise RuntimeError("Stage audio RPC requires one worker rank")
+        model = self.model_runner.get_model()
+        return model.process_realtime_audio_batch(payload)
+
     def get_stage_post_warmup_memory_stats(self) -> dict[str, int] | None:
         if self.rank != 0:
             return None

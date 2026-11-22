@@ -255,6 +255,7 @@ _OMNI_MODELS = {
         "mimo_audio_code2wav",
         "MiMoAudioToken2WavForConditionalGenerationVLLM",
     ),
+    "NemotronUnifiedASR": ("nemotron_unified_asr", "model", "NemotronUnifiedASR"),
     ## ming-tts
     "MingTTSForConditionalGeneration": (
         "ming_tts",

@@ -85,6 +85,7 @@ def _register_omni_hf_configs() -> None:
             MossTTSLocalConfig,
             MossTTSRealtimeConfig,
         )
+        from vllm_omni.model_executor.models.nemotron_unified_asr.config import NemotronUnifiedASRConfig
         from vllm_omni.model_executor.models.nemotron_voicechat.configuration_nemotron_voicechat import (
             NemotronVoiceChatConfig,
         )
@@ -116,6 +117,7 @@ def _register_omni_hf_configs() -> None:
     for model_type, config_cls in [
         ("alpamayo2_super", Alpamayo2SuperConfig),
         ("breeze", BreezeConfig),
+        ("nemotron_unified_asr", NemotronUnifiedASRConfig),
         ("dense", MingDenseConfig),
         ("bailingmm", MingMoeConfig),
         ("ming3_tts", Ming3TTSConfig),

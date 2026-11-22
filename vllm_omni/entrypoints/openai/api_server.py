@@ -1065,6 +1065,10 @@ async def omni_init_app_state(
     base_model_paths = [BaseModelPath(name=name, model_path=args.model) for name in served_model_names]
     state.openai_realtime_handler = OpenAIRealtimeHandler.from_engine_client(engine_client)
     state.engine_client = engine_client
+    if vllm_config and getattr(vllm_config.model_config.hf_config, "model_type", None) == "nemotron_unified_asr":
+        from vllm_omni.entrypoints.openai.nemotron_asr_realtime import NemotronTranscription
+
+        state.nemotron_transcription = NemotronTranscription(engine_client, vllm_config.model_config)
     state.log_stats = not args.disable_log_stats
     state.args = args
     state.sleeping_stages = set()
@@ -2066,6 +2070,10 @@ async def realtime_websocket(websocket: WebSocket):
         await websocket.accept()
         await websocket.send_json({"type": "error", "code": "unsupported", "error": "VAD realtime is not enabled"})
         await websocket.close(code=1008)
+        return
+
+    if handler := getattr(websocket.app.state, "nemotron_transcription", None):
+        await handler.handle(websocket)
         return
 
     chat = getattr(websocket.app.state, "openai_serving_chat", None)

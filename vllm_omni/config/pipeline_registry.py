@@ -123,6 +123,7 @@ from vllm_omni.model_executor.models.moss_tts.pipeline import (
     MOSS_TTS_REALTIME_PIPELINE,
 )
 from vllm_omni.model_executor.models.moss_tts_nano.pipeline import MOSS_TTS_NANO_PIPELINE
+from vllm_omni.model_executor.models.nemotron_unified_asr.pipeline import NEMOTRON_UNIFIED_ASR_PIPELINE
 from vllm_omni.model_executor.models.nemotron_voicechat.pipeline import (
     NEMOTRON_VOICECHAT_PIPELINE,
 )
@@ -222,6 +223,7 @@ OMNI_PIPELINES: dict[str, PipelineConfig | PipelineResolverFunc] = {
     "ming_flash_omni_thinker_only": MING_FLASH_OMNI_THINKER_ONLY_PIPELINE,
     "ming_flash_omni_tts": MING_FLASH_OMNI_TTS_PIPELINE,
     "ming_image": MING_IMAGE_PIPELINE,
+    "nemotron_unified_asr": NEMOTRON_UNIFIED_ASR_PIPELINE,
     "ming_tts": MING_TTS_PIPELINE,
     "ming_tts_moe": MING_TTS_MOE_PIPELINE,
     "minicpmo_4_5": MINICPMO_4_5_PIPELINE,

@@ -10,6 +10,8 @@ The handler supports a subset of the OpenAI Realtime GA API, including streamed
 audio input, manual or server VAD turns, text and audio output, and function
 calling.
 
+For transcription-only sessions using NVIDIA Nemotron Unified ASR, see the [streaming transcription recipe](../../recipes/NVIDIA/Nemotron-Unified-ASR.md).
+
 ## Quick Start
 
 The endpoint is currently only supported for Qwen3-Omni. To start:
